@@ -1,0 +1,127 @@
+---
+title: "Chicago Crime Trends"
+author: '[Ashish Pujari](apujari@uchicago.edu),  MScA Spring 2015'
+date: '`r format(Sys.Date(), "%d %b, %Y")`'
+output: html_document
+---
+
+
+```{r figure1 , fig.width = 9, fig.height = 5, dpi = 144, cache=FALSE, message=FALSE, warning=FALSE}
+
+library(data.table)
+library(scales)
+library(ggplot2)
+library(plyr)
+library(oce)
+library(gtools)
+library(ggthemes)
+
+#read neighborhoods
+neighborhood <-  fread("C:/dev/R/MSCA31005/data/neighborhood.csv", header=T, sep = ",")
+
+#read crimetypes
+crimetype <- fread("C:/dev/R/MSCA31005/data/crimetype.csv", header=T, sep = ",")
+
+#read crimes  
+crimes <- fread("C:/dev/R/MSCA31005/data/Crimes2005.csv", header=T, sep = ",")
+crimes <- as.data.frame(crimes)
+
+names(crimes)
+
+#keep necessary columns
+crimes <- crimes[c(3,6,14)]
+
+#merge crimes and neighborhood by Community.Area
+crimes <- merge(crimes, neighborhood)
+
+#merge crimes and crimetype 
+crimes <- merge(crimes, crimetype)
+
+#clean crimes data
+crimes$DateTime <- as.POSIXct(crimes$Date, "%m/%d/%Y %H:%M:%S %p", tz='America/Chicago')
+crimes$DateUTC <- as.POSIXlt(crimes$DateTime, "%m/%d/%Y %H:%M:%S %p", tz='UTC')
+crimes$Date <- as.Date(crimes$Date, "%m/%d/%Y")
+
+head(crimes)
+
+#plot total crimes trend
+ggplot(count(crimes, c(3)),aes(x=Date, y=freq)) + geom_point() + xlab("Year") + ylab ("Crime") + ggtitle("Chicago Daily Crime") + theme_solarized(base_size = 10) 
+
+
+#map crimes by community area
+crimesByArea <- merge(count(crimes, c(2)), neighborhood)
+head(crimesByArea)
+
+#map crimes by neighborhood
+crimesByNeighborhood <- count(crimesByArea, c(3))
+head(crimesByNeighborhood)
+
+#Plot crimes by neighborhood
+ggplot(crimesByNeighborhood, aes(x = reorder(factor(Neighborhood), -freq), y = freq, fill=Neighborhood)) + geom_bar(stat = "identity") + scale_alpha_discrete(range=c(0.4, 1)) + theme_solarized(base_size=10) + xlab(NULL) + ylab ("Cases") + ggtitle("Crimes by Neighborhood") + theme(axis.text.x=element_text(angle = -45, hjust = 0)) + scale_y_continuous(labels = comma)
+
+#map crimes by type
+crimesByType <- merge(count(crimes, c(5)), crimetype)
+
+#Plot crimes by type
+ggplot(crimesByType, aes(x = reorder(factor(PrimaryType), -freq), y = freq, fill=factor(Primary.Type))) + geom_bar(stat = "identity", fill="#C80815") + scale_alpha_discrete(range=c(0.4, 1)) + ggtitle("Crimes by Type") + theme_solarized(base_size=10) + xlab(NULL) + ylab ("Cases") + theme(axis.text.x=element_text(angle = -45, hjust = 0)) + scale_y_continuous(labels = comma)
+
+#points with season colors
+getSeason <- function(DATES) {
+    WS <- as.Date("2012-12-15", format = "%Y-%m-%d") # Winter Solstice
+    SE <- as.Date("2012-3-15",  format = "%Y-%m-%d") # Spring Equinox
+    SS <- as.Date("2012-6-15",  format = "%Y-%m-%d") # Summer Solstice
+    FE <- as.Date("2012-9-15",  format = "%Y-%m-%d") # Fall Equinox
+
+    # Convert dates from any year to 2012 dates
+    d <- as.Date(strftime(DATES, format="2012-%m-%d"))
+
+    ifelse (d >= WS | d < SE, "Winter",
+      ifelse (d >= SE & d < SS, "Spring",
+        ifelse (d >= SS & d < FE, "Summer", "Fall")))
+}
+
+#plot crimes by season (same data as trends)
+ggplot(count(crimes, c(3)),aes(x=Date, y=freq, color= getSeason(Date))) + geom_point() + xlab("Year") + ylab ("Crime") + ggtitle("Chicago Daily Crime") + theme_solarized(base_size = 10) + scale_colour_discrete(name="Seasons", h = c(0, 360) + 15, c = 100, l = 65, h.start = 0, direction = 1) 
+
+
+#read weather data  
+weather <- fread("C:/dev/R/MSCA31005/data/Weather.csv", header=T, sep = ",", verbose = F )
+weather <- as.data.frame(weather)
+names(weather)
+
+#keep necessary columns
+weather <- weather[c(2,6:14) ]
+
+#clean weather data
+weather <- weather[!weather$TMAX == -9999, ]
+weather <- weather[!weather$TMIN == -9999, ]
+weather <- weather[!weather$PRCP == -9999, ]
+
+weather$Date <- as.Date.character(weather$DATE, "%Y%m%d")
+weather <- subset (weather, (weather$DATE > "2004/12/31")) 
+weather <- subset (weather, (weather$STATION_NAME == "CHICAGO MIDWAY AIRPORT IL US")) 
+
+head(weather)
+
+#map crimes by Date
+crimesByDate <- count(crimes, c(3))
+crimesByDate <- merge(crimesByDate, weather)
+
+#plot crimes by temperature
+ggplot(crimesByDate,aes(x=TMAX*(9/50) + 32, y=freq, ylim(c(-100 , 100)))) + geom_smooth() + xlab("Max Temp.") + ylab ("Crimes") + ggtitle("Temperature Impact on Crime") + theme_solarized(base_size = 10)  
+#compute Lunar Phase by Lat, Long
+crimesByDate$DateUTC <-  as.POSIXlt(crimesByDate$Date, "%m/%d/%Y", tz='UTC')
+crimesByDate$MoonAngle <- moonAngle(crimesByDate$DateUTC, longitude=-87.6847, latitude=41.8369)$illuminatedFraction
+
+#map moon phases to numbers
+crimesByDate$MoonPhase <- quantcut(crimesByDate$MoonAngle, q=seq(0,1,by=0.25), labels = c("No Moon", "Quarter Moon", "Third Quarter", "Full Moon"), na.rm=TRUE)
+
+head(crimesByDate)
+
+table(crimesByDate$MoonPhase)
+
+#plot moon phases
+ggplot(na.omit(count(crimesByDate, c(15))), aes(x = reorder(factor(MoonPhase), -freq), y = freq, fill=factor(MoonPhase))) + geom_bar(stat = "identity") + theme_solarized(base_size=10) + xlab(NULL) + ylab ("Cases") + ggtitle("Crimes by Moon Phase") + scale_y_continuous(labels = comma)
+
+```
+
