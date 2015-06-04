@@ -5,3 +5,4 @@
 ![alt tag](https://github.com/pujari/chicagocrimes/blob/master/figure3.png).
 ![alt tag](https://github.com/pujari/chicagocrimes/blob/master/figure4.png).
 ![alt tag](https://github.com/pujari/chicagocrimes/blob/master/figure5.png).
+![alt tag](https://github.com/pujari/chicagocrimes/blob/master/figure6.png).
