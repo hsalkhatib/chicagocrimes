@@ -2,7 +2,7 @@
 title: "Chicago Crime Trends"
 output: html_document
 ---
-
+ 
 ```{r figure1 , fig.width = 9, fig.height = 5, dpi = 144, cache=FALSE, message=FALSE, warning=FALSE}
 
 library(data.table)
@@ -109,7 +109,7 @@ crimesByTemp <- merge(crimesByTemp,daysByTemp, by="TMAX")
 head(crimesByTemp)
 
 #plot crimes by temperature
-ggplot(crimesByTemp, aes(x=TMAX*(9/50) + 32, y=freq.x/freq.y, xlim(c(-100 , 100)))) + geom_smooth(fill="blue", colour="darkblue", size=1.2, alpha = 0.2) + xlab("Max Temp.") + ylab ("Cases") + ggtitle("Temperature Impact on Crime") + theme_solarized(base_size = 10)  
+ggplot(crimesByTemp, aes(x=TMAX*(9/50) + 32, y=freq.x/freq.y, xlim(c(-100 , 100)))) + geom_smooth(fill="blue", colour="darkblue", size=1.2, alpha = 0.2) + xlab("Max Temp.") + ylab ("Cases (avg)") + ggtitle("Temperature Impact on Crime") + theme_solarized(base_size = 10)  
 
 
 #sum crimes on same precipitation
@@ -120,8 +120,27 @@ crimesByPrcp <- merge(crimesByPrcp,daysByPrcp, by="PRCP")
 head(crimesByPrcp)
 
 #plot crimes by precipitation
-ggplot(crimesByPrcp, aes(x=PRCP, y=freq.x/freq.y)) + geom_smooth(fill="blue", colour="darkblue", size=1.2, alpha = 0.2) + xlab("Precipitation") + ylab ("Cases") + ggtitle("Precipitation Impact on Crime") + theme_solarized(base_size = 10)
+ggplot(crimesByPrcp, aes(x=PRCP, y=freq.x/freq.y)) + geom_smooth(fill="blue", colour="darkblue", size=1.2, alpha = 0.2) + xlab("Precipitation") + ylab ("Cases (avg)") + ggtitle("Precipitation Impact on Crime") + theme_solarized(base_size = 10)
 
+
+#compute Lunar Phase by Lat, Long
+crimes$MoonAngle <- moonAngle(crimes$DateUTC, longitude=-87.6847, latitude=41.8369)$illuminatedFraction
+
+#map moon phases to quarters
+crimes$MoonPhase <- quantcut(crimes$MoonAngle, q=seq(0,1,by=0.25), labels = c("No Moon", "Quarter Moon", "Third Quarter", "Full Moon"), na.rm=TRUE)
+
+head(crimes)
+
+table(crimes$MoonPhase)
+
+#plot moon phases
+ggplot(na.omit(count(crimes, c(12))), aes(x = reorder(factor(MoonPhase), -freq), y = freq, fill=factor(MoonPhase))) + geom_bar(stat = "identity") + theme_solarized(base_size=10) + xlab(NULL) + ylab ("Cases") + ggtitle("Crimes by Moon Phase") + scale_y_continuous(labels = comma)
+
+#crimes prediction
+crimesByDate <- count(crimes, c(1))
+model <- lm(formula = freq ~ lag(Date), data = crimesByDate)
+summary(model)
+par(mfrow=c(2, 2))
+plot(model)
 
 ```
-
