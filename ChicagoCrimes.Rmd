@@ -14,13 +14,13 @@ library(gtools)
 library(ggthemes)
 
 #read neighborhoods
-neighborhood <-  fread("C:/dev/R/MSCA31005/data/neighborhood.csv", header=T, sep = ",")
+neighborhood <-  fread("../data/neighborhood.csv", header=T, sep = ",")
 
 #read crimetypes
-crimetype <- fread("C:/dev/R/MSCA31005/data/crimetype.csv", header=T, sep = ",")
+crimetype <- fread("../data/crimetype.csv", header=T, sep = ",")
 
 #read crimes  
-crimes <- fread("C:/dev/R/MSCA31005/data/Crimes2005.csv", header=T, sep = ",")
+crimes <- fread("../data/Crimes2005.csv", header=T, sep = ",")
 crimes <- as.data.frame(crimes)
 
 names(crimes)
