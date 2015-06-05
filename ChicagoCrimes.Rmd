@@ -14,13 +14,13 @@ library(gtools)
 library(ggthemes)
 
 #read neighborhoods
-neighborhood <-  fread("../data/neighborhood.csv", header=T, sep = ",")
+neighborhood <-  fread("C:/dev/R/MSCA31005/data/neighborhood.csv", header=T, sep = ",")
 
 #read crimetypes
-crimetype <- fread("../data/crimetype.csv", header=T, sep = ",")
+crimetype <- fread("C:/dev/R/MSCA31005/data/crimetype.csv", header=T, sep = ",")
 
 #read crimes  
-crimes <- fread("../data/Crimes2005.csv", header=T, sep = ",")
+crimes <- fread("C:/dev/R/MSCA31005/data/Crimes2005.csv", header=T, sep = ",")
 crimes <- as.data.frame(crimes)
 
 names(crimes)
@@ -42,7 +42,7 @@ crimes$Date <- as.Date(crimes$Date, "%m/%d/%Y")
 head(crimes)
 
 #plot total crimes trend
-ggplot(count(crimes, c(3)),aes(x=Date, y=freq)) + geom_point() + xlab("Year") + ylab ("Crime") + ggtitle("Chicago Daily Crime") + theme_solarized(base_size = 10) 
+ggplot(count(crimes, c(3)),aes(x=Date, y=freq)) + geom_point(size=1.5, colour="#888888") +  stat_smooth(fill="blue", colour="darkblue", size=1.2, alpha = 0.2) + xlab("Year") + ylab ("Cases") + ggtitle("Chicago Daily Crime") + theme_solarized(base_size = 10) 
 
 
 #map crimes by community area
@@ -78,7 +78,7 @@ getSeason <- function(DATES) {
 }
 
 #plot crimes by season (same data as trends)
-ggplot(count(crimes, c(3)),aes(x=Date, y=freq, color= getSeason(Date))) + geom_point() + xlab("Year") + ylab ("Crime") + ggtitle("Chicago Daily Crime") + theme_solarized(base_size = 10) + scale_colour_discrete(name="Seasons", h = c(0, 360) + 15, c = 100, l = 65, h.start = 0, direction = 1) 
+ggplot(count(crimes, c(3)),aes(x=Date, y=freq, color= getSeason(Date))) + geom_point(size = 1.5) + xlab("Year") + ylab ("Cases") + ggtitle("Chicago Daily Crime") + theme_solarized(base_size = 10) + scale_colour_discrete(name="Seasons", h = c(0, 360) + 15, c = 100, l = 65, h.start = 0, direction = 1) 
 
 
 #read weather data  
@@ -120,5 +120,11 @@ table(crimesByDate$MoonPhase)
 #plot moon phases
 ggplot(na.omit(count(crimesByDate, c(15))), aes(x = reorder(factor(MoonPhase), -freq), y = freq, fill=factor(MoonPhase))) + geom_bar(stat = "identity") + theme_solarized(base_size=10) + xlab(NULL) + ylab ("Cases") + ggtitle("Crimes by Moon Phase") + scale_y_continuous(labels = comma)
 
-```
 
+#prediction
+model <- lm(formula = freq ~ lag(Date), data = crimesByDate)
+summary(model)
+par(mfrow=c(2, 2))
+plot(model)
+
+```
