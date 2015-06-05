@@ -80,51 +80,48 @@ getSeason <- function(DATES) {
 #plot crimes by season (same data as trends)
 ggplot(count(crimes, c(3)),aes(x=Date, y=freq, color= getSeason(Date))) + geom_point(size = 1.5) + xlab("Year") + ylab ("Cases") + ggtitle("Chicago Daily Crime") + theme_solarized(base_size = 10) + scale_colour_discrete(name="Seasons", h = c(0, 360) + 15, c = 100, l = 65, h.start = 0, direction = 1) 
 
-
 #read weather data  
 weather <- fread("C:/dev/R/MSCA31005/data/Weather.csv", header=T, sep = ",", verbose = F )
 weather <- as.data.frame(weather)
 names(weather)
 
 #keep necessary columns
-weather <- weather[c(2,6:14) ]
+weather <- weather[c(2,6,8,12) ]
 
 #clean weather data
 weather <- weather[!weather$TMAX == -9999, ]
-weather <- weather[!weather$TMIN == -9999, ]
 weather <- weather[!weather$PRCP == -9999, ]
 
 weather$Date <- as.Date.character(weather$DATE, "%Y%m%d")
 weather <- subset (weather, (weather$DATE > "2004/12/31")) 
-weather <- subset (weather, (weather$STATION_NAME == "CHICAGO MIDWAY AIRPORT IL US")) 
-
+weather <- subset (weather, (weather$STATION_NAME == "CHICAGO MIDWAY AIRPORT IL US"))
+weather$STATION_NAME <- NULL
 head(weather)
 
-#map crimes by Date
-crimesByDate <- count(crimes, c(3))
-crimesByDate <- merge(crimesByDate, weather)
+crimes <- merge(crimes, weather, by="Date")
+head(crimes,10)
+
+#sum crimes on same temperature
+daysByTemp <- count(weather, c(3))
+crimesByTemp <- count(crimes, c(10))
+crimesByTemp <- merge(crimesByTemp,daysByTemp, by="TMAX")
+
+head(crimesByTemp)
 
 #plot crimes by temperature
-ggplot(crimesByDate,aes(x=TMAX*(9/50) + 32, y=freq, ylim(c(-100 , 100)))) + geom_smooth() + xlab("Max Temp.") + ylab ("Crimes") + ggtitle("Temperature Impact on Crime") + theme_solarized(base_size = 10)  
-#compute Lunar Phase by Lat, Long
-crimesByDate$DateUTC <-  as.POSIXlt(crimesByDate$Date, "%m/%d/%Y", tz='UTC')
-crimesByDate$MoonAngle <- moonAngle(crimesByDate$DateUTC, longitude=-87.6847, latitude=41.8369)$illuminatedFraction
-
-#map moon phases to numbers
-crimesByDate$MoonPhase <- quantcut(crimesByDate$MoonAngle, q=seq(0,1,by=0.25), labels = c("No Moon", "Quarter Moon", "Third Quarter", "Full Moon"), na.rm=TRUE)
-
-head(crimesByDate)
-
-table(crimesByDate$MoonPhase)
-
-#plot moon phases
-ggplot(na.omit(count(crimesByDate, c(15))), aes(x = reorder(factor(MoonPhase), -freq), y = freq, fill=factor(MoonPhase))) + geom_bar(stat = "identity") + theme_solarized(base_size=10) + xlab(NULL) + ylab ("Cases") + ggtitle("Crimes by Moon Phase") + scale_y_continuous(labels = comma)
+ggplot(crimesByTemp, aes(x=TMAX*(9/50) + 32, y=freq.x/freq.y, xlim(c(-100 , 100)))) + geom_smooth(fill="blue", colour="darkblue", size=1.2, alpha = 0.2) + xlab("Max Temp.") + ylab ("Cases") + ggtitle("Temperature Impact on Crime") + theme_solarized(base_size = 10)  
 
 
-#prediction
-model <- lm(formula = freq ~ lag(Date), data = crimesByDate)
-summary(model)
-par(mfrow=c(2, 2))
-plot(model)
+#sum crimes on same precipitation
+daysByPrcp <- count(weather, c(2))
+crimesByPrcp <- count(crimes, c(9))
+crimesByPrcp <- merge(crimesByPrcp,daysByPrcp, by="PRCP")
+
+head(crimesByPrcp)
+
+#plot crimes by precipitation
+ggplot(crimesByPrcp, aes(x=PRCP, y=freq.x/freq.y)) + geom_smooth(fill="blue", colour="darkblue", size=1.2, alpha = 0.2) + xlab("Precipitation") + ylab ("Cases") + ggtitle("Precipitation Impact on Crime") + theme_solarized(base_size = 10)
+
 
 ```
+
