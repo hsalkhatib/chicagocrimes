@@ -11,5 +11,5 @@
 ### Data Sources
 
 * Crime data - https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-present/ijzp-q8t2
-* Weather - http://www.weather.gov/
+* Weather - http://www.ncdc.noaa.gov/
 * Neighourhood Data - http://en.wikipedia.org/wiki/Community_areas_in_Chicago
